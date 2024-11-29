@@ -30,5 +30,5 @@ python3 scripts/area_plot.py --help
 ```
 
 
-The tool has only been tested for Synopsys DC
+The tool has only been tested using Synopsys DC® output files
 
