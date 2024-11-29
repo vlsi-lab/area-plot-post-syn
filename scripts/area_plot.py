@@ -6,9 +6,7 @@
 #Description: Treemap and sunburst plot starting from area report
 
 
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-import seaborn as sb
 import argparse
 import pandas as pd
 import utils.utils_area as utils
@@ -20,7 +18,7 @@ def get_args():
   # Add arguments
   parser.add_argument('--filename', type = str, help = 'Name of the report file to parse', default = './area.rpt')
   parser.add_argument('--rename', type = bool, help = 'Rename the duplicates in the hierarchy for prettier appearance', default = False)
-  parser.add_argument('--top-module', type = str, help = 'Name of the top module to plot', default = 'nmc_cisc_top')
+  parser.add_argument('--top-module', type = str, help = 'Name of the top module to plot', default = 'heep_top')
   parser.add_argument('--max-levels-hier', type = int, help = 'Maximum number of levels to consider in the hierarchy', default = 4)
   parser.add_argument('--threshold', type = float, help = 'Minimum area percentage with respect to the parent to plot a component', default = 0.001)
   parser.add_argument('--load-from-csv', type = bool, help = 'Load the hierarchy from a csv file', default = False)
@@ -142,9 +140,9 @@ def main():
   '''
   # Plot the treemap
   if (args.plot_type == 'treemap'):
-    treemap_plot(df_tree, top_module, args.max_levels_hier, args.threshold, args.plot_mode, colormap)
+    treemap_plot(df_tree, top_module, args.max_levels_hier, args.plot_mode, colormap)
   elif (args.plot_type == 'sunburst'):
-    sunburst_plot(df_tree, top_module, args.max_levels_hier, args.threshold, args.plot_mode, colormap)
+    sunburst_plot(df_tree, top_module, args.max_levels_hier, args.plot_mode, colormap)
   
 if __name__ == '__main__':
   main()

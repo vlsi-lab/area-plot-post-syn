@@ -271,7 +271,7 @@ def add_component_to_dict(component_dict, parent_name, component_name, attr, thr
         return False
 
     elif isinstance(v, dict):
-      found = add_component_to_dict(component_dict[k], parent_name, component_name, attr, threshold, curr_level_hier+1, max_levels_hier)=
+      found = add_component_to_dict(component_dict[k], parent_name, component_name, attr, threshold, curr_level_hier+1, max_levels_hier)
     
   return False
 
@@ -431,67 +431,3 @@ def get_df_from_report(filename:str):
   # save to temp cvs
   df.to_csv('temp.csv', index=False, float_format='%.4f', columns=['id', 'parent', 'label', 'value', 'color'], header=True)
   return df  
-
-
-def get_dict_from_component_name_hier(component_name:str, filename:str, max_levels_hier=2, threshold = 0.):
-  '''
-  Parse the report file to get the area of the component instance.
-  This function should account also for the hierarchy in the design.
-  @param component_name: str or list of string. Reduced name of the component instance
-  @param filename: str. Name of the report to parse
-  @param max_levels_hier: int. Maximum number of levels to consider in the hierarchy (default 2)
-  @param threshold: float. Minimum area percentage to consider a component (default 0.05)
-  @return: 
-  '''
-  # Read the file
-  file = open(filename, 'r')
-  lines = file.readlines()
-  file.close()
-  # TODO: improve, directly use df instead of dict
-  component_str_match = '\w*' + component_name + '\s+(\d+\.+\d+)'
-  hier_str_match = '\w*' + component_name + '(\/\w*){0,}\s+(\d+\.+\d+)'
-  first_match_is_top = False
-  component_dict = {}
-  remaining_area = 0
-  for i, line in enumerate(lines):
-    #stop at the first match (it is the top level)
-    component_match = re.search(component_str_match, line)
-    hier_match = re.search(hier_str_match, line)
-    # First match
-    if (component_match):
-      first_match_is_top = True
-      component_attr = float(component_match.group(1))
-      # Add to the dictionary
-      #component_dict_name = component_match.group(0)
-      component_dict_name = component_name
-      #print(f'Component: {component_dict_name}, attr: {component_attr}')
-      component_dict[component_dict_name] = {'attr': component_attr}
-    # Start hierarchical exploration
-    # From Second match onwards
-    elif (first_match_is_top and hier_match):
-      # Understand the hierarchy level
-      hier_level = hier_match.group(0).count('/')
-      split_hier = hier_match.group(0).split('/')
-      # Take only the element before the last level
-      parent_name = split_hier[-2]
-      # Retrieve name and attr of the sub_component
-      sub_component_name = hier_match.group(1).replace('/', '')
-      sub_component_attr = float(hier_match.group(2))
-      # First level
-      if hier_level == 1:
-        # Add to the current key a new dictionary
-        if sub_component_attr > threshold * component_attr:
-          component_dict[component_dict_name][sub_component_name] = {'attr': sub_component_attr}
-        else:
-          remaining_area += sub_component_attr
-      elif hier_level <= max_levels_hier:
-        # Parent is already in the dictionary
-        # Safety check: check if parent is in the dictionary at whatever level
-        add_component_to_dict(component_dict[component_dict_name], parent_name, sub_component_name, sub_component_attr, threshold, 1, max_levels_hier)
-
-  if not first_match_is_top:
-    raise ValueError(f'No attr found for {component_name} in {filename}')
-  return component_dict
-
-  
-
