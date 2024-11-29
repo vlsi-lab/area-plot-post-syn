@@ -17,7 +17,7 @@ def get_args():
   parser = argparse.ArgumentParser()
   # Add arguments
   parser.add_argument('--filename', type = str, help = 'Name of the report file to parse', default = './area.rpt')
-  parser.add_argument('--rename', type = bool, help = 'Rename the duplicates in the hierarchy for prettier appearance', default = False)
+  parser.add_argument('--rename', type = bool, help = 'Rename the duplicates in the hierarchy if present', default = False)
   parser.add_argument('--top-module', type = str, help = 'Name of the top module to plot', default = 'heep_top')
   parser.add_argument('--max-levels-hier', type = int, help = 'Maximum number of levels to consider in the hierarchy', default = 4)
   parser.add_argument('--threshold', type = float, help = 'Minimum area percentage with respect to the parent to plot a component', default = 0.001)
@@ -118,6 +118,7 @@ def main():
   #df_tree = df_tree[df_tree['value'] != 0]
   
   # Find duplicate and rename them and all their children 'parent' field
+  # Note: renaming is required not to break the plotly plot
   if (args.rename):
     df_tree = utils.rename_duplicates(df_tree)
     # save not to call it every time
