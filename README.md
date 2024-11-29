@@ -24,11 +24,12 @@ python3 scripts/area_plot.py --filename report_file.rpt --rename True
 ```
 Further options are available to tweak the interactive plot, such as plotting only modules whose area contribution is higher than a certain percentage or setting the maximum hierarchical level up to which visualize the block scheme.
 
+
 For all available options try:
 ```bash
 python3 scripts/area_plot.py --help
 ```
-
+The tool also supports interactive `sunburst` visualization using [plotly](https://plotly.com/python/sunburst-charts/)
 
 The tool has only been tested using Synopsys DC® output files
 
