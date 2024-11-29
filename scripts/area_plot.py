@@ -61,7 +61,6 @@ def treemap_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap):
   fig.show()
   # save figure
   fig.write_image(str(top_module) + "_treemap" +".png", engine="kaleido")
-  fig.write_image(str(top_module) + "_treemap" +".pdf", engine="kaleido")
   fig.write_image(str(top_module) + "_treemap" +".svg", engine="kaleido")
 
 
@@ -93,7 +92,6 @@ def sunburst_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap):
   fig.show()
   # save figure
   fig.write_image(str(top_module) + "_sunburst.png", engine="kaleido")
-  fig.write_image(str(top_module) + "_sunburst.pdf", engine="kaleido")
   fig.write_image(str(top_module) + "_sunburst.svg", engine="kaleido")
 
 
@@ -103,11 +101,7 @@ def main():
   top_module = args.top_module
 
   # define colormap as a list of hex colors
-  if 'l1' in top_module:
-    colormap = ['#6F1A07', '#E07A5F', '#005F73', '#81B29A', '#F2CC8F']
-
-  else:
-    colormap = ['#d58936', '#39393a','#6d1a36','#39393a','#007480','#39393a','#39393a', '#39393a','#39393a','#6d1a36','#007480', '#d58936' ]
+  colormap = ['#d58936', '#39393a','#6d1a36','#39393a','#007480','#39393a','#39393a', '#39393a','#39393a','#6d1a36','#007480', '#d58936' ]
 
   if (args.load_from_csv):
     df_tree = pd.read_csv(args.csv_file)
@@ -131,14 +125,7 @@ def main():
   df_tree = utils.remove_wrappers(df_tree)
   # Not required, total mode works for < area of children than parent
   #df_tree = utils.make_dataset_complete(df_tree)
-  '''
-  df_tree = utils.plot_threshold(df_tree, args.threshold)
-  if (args.top_module == 'u_nmc_cisc'):
-    df_tree = utils.remove_module(df_tree, 'u_nmc_cisc_peripherals')
-  elif args.top_module == 'heep_top':
-    area_ctl = 107418.3202+14917.3202+12008.52-11585.8802
-    df_tree = utils.add_module(df_tree, 'cache_ctl', 'memory_subsystem_i', area_ctl)
-  '''
+
   # Plot the treemap
   if (args.plot_type == 'treemap'):
     treemap_plot(df_tree, top_module, args.max_levels_hier, args.plot_mode, colormap)

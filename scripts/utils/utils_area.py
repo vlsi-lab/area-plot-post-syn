@@ -429,5 +429,5 @@ def get_df_from_report(filename:str):
   # Remove last line that is the total
   df = df[:-1]
   # save to temp cvs
-  df.to_csv('temp.csv', index=False, float_format='%.4f', columns=['id', 'parent', 'label', 'value', 'color'], header=True)
+  #df.to_csv('temp.csv', index=False, float_format='%.4f', columns=['id', 'parent', 'label', 'value', 'color'], header=True)
   return df  
