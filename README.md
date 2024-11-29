@@ -3,7 +3,7 @@ This repository contains a python script allowing to plot in `treemap` format an
 By providing an interactive interface through [`plotly`](https://plotly.com) library, the tool enables hierarchical designs exploration.
 Furthermore, it represents a simple way to visualize complex designs, observing the relative dimensions of the different components and their impact on the overall design.
 
-![Example screenshot](https://github.com/vlsi-lab/area-plot-post-syn/blob/dev-parsing/images/example_image.png)
+![Example screenshot]([https://github.com/vlsi-lab/area-plot-post-syn/tree/main/images](https://github.com/vlsi-lab/area-plot-post-syn/blob/main/images/example_image.png)
 
 ## Requirements
 
