@@ -1,1 +1,7 @@
 __pycache__
+
+# Output files
+./*.svg
+./*.png
+./*.html
+./*.csv
