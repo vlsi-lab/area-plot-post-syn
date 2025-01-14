@@ -352,7 +352,7 @@ def get_area_from_component_name(component_name, filename):
   
   area = []
   for name in component_name:
-    str_match = '\w*' + name + '\s+(\d+\.+\d+)'
+    str_match = r'\w*' + name + r'\s+(\d+\.+\d+)'
     for line in lines:
       
       match = re.search(str_match, line)
@@ -410,7 +410,7 @@ def get_df_from_report(filename:str):
 
   df = pd.DataFrame(columns=['id', 'parent', 'label', 'value', 'color'])
 
-  component_str = '([[a-zA-Z\_]+[\/[a-zA-Z0-9\_]*]{0,})\s+(\d+\.+\d+)'
+  component_str = r'([[a-zA-Z\_]+[\/[a-zA-Z0-9\_]*]{0,})\s+(\d+\.+\d+)'
   first_match_is_top = False
   for line in lines:
     match = re.search(component_str, line)
