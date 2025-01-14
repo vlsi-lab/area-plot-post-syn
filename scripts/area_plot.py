@@ -25,7 +25,7 @@ def get_args():
   parser.add_argument('--skip_rename', action='store_true', help = 'Skip looking for duplicates in the hierarchy. This may break the plot if duplicates are present, but it is faster.')
   parser.add_argument('--top-module', type = str, help = 'Name of the top module to plot')
   parser.add_argument('--max-levels-hier', type = int, help = 'Maximum number of levels to consider in the hierarchy', default = 4)
-  parser.add_argument('--threshold', type = float, help = 'Minimum area percentage with respect to the parent to plot a component', default = 0.001)
+  parser.add_argument('--threshold', type = float, help = 'Minimum area percentage with respect to the parent to plot a component', default = 0)
   parser.add_argument('--plot-mode', choices=['total','remainder'], default = 'total')
   parser.add_argument('--plot-type', type = str, help = 'Type of plot to generate, for now support only treemap and sunburst', default = 'treemap')
   parser.add_argument('--show', action='store_true', help = 'Show the plot')
@@ -122,9 +122,10 @@ def main():
   # Infer top module
   if (args.top_module == None):
     top_module = df_tree['id'].iloc[0]
-    print("Warning: top_module not specified, inferred as the first entry: ", top_module)
   else:
     top_module = args.top_module
+  
+  print("Selected top-level module: ", top_module)
 
   # Create the output directory
   if not os.path.exists(args.out_dir):
