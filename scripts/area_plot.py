@@ -21,7 +21,7 @@ def get_args():
   group.add_argument('--filename', type = str, help = 'Name of the report file to parse', default = './area.rpt')
   group.add_argument('--load-from-csv', type = str, help = 'Load the hierarchy from the specified csv file')
   # Add arguments
-  parser.add_argument('--out_dir', type = str, help = 'Output directory where to store the generated plots.', default = '.')
+  parser.add_argument('--out-dir', type = str, help = 'Output directory where to store the generated plots.', default = '.')
   parser.add_argument('--skip_rename', action='store_true', help = 'Skip looking for duplicates in the hierarchy. This may break the plot if duplicates are present, but it is faster.')
   parser.add_argument('--top-module', type = str, help = 'Name of the top module to plot')
   parser.add_argument('--max-levels-hier', type = int, help = 'Maximum number of levels to consider in the hierarchy', default = 4)
