@@ -10,24 +10,28 @@ import plotly.graph_objects as go
 import argparse
 import pandas as pd
 import utils.utils_area as utils
+import os
 
 
 def get_args():
   # Create an argument parser object
   parser = argparse.ArgumentParser()
+  # Add mutually arguments
+  group = parser.add_mutually_exclusive_group(required=True)
+  group.add_argument('--filename', type = str, help = 'Name of the report file to parse', default = './area.rpt')
+  group.add_argument('--load-from-csv', type = str, help = 'Load the hierarchy from the specified csv file')
   # Add arguments
-  parser.add_argument('--filename', type = str, help = 'Name of the report file to parse', default = './area.rpt')
-  parser.add_argument('--rename', type = bool, help = 'Rename the duplicates in the hierarchy if present', default = False)
-  parser.add_argument('--top-module', type = str, help = 'Name of the top module to plot', default = 'heep_top')
+  parser.add_argument('--out_dir', type = str, help = 'Output directory where to store the generated plots.', default = '.')
+  parser.add_argument('--skip_rename', action='store_true', help = 'Skip looking for duplicates in the hierarchy. This may break the plot if duplicates are present, but it is faster.')
+  parser.add_argument('--top-module', type = str, help = 'Name of the top module to plot')
   parser.add_argument('--max-levels-hier', type = int, help = 'Maximum number of levels to consider in the hierarchy', default = 4)
   parser.add_argument('--threshold', type = float, help = 'Minimum area percentage with respect to the parent to plot a component', default = 0.001)
-  parser.add_argument('--load-from-csv', type = bool, help = 'Load the hierarchy from a csv file', default = False)
-  parser.add_argument('--csv-file', type = str, help = 'Name of the csv file to load the hierarchy from or where to save the data', default = 'temp_rn.csv')
   parser.add_argument('--plot-mode', choices=['total','remainder'], default = 'total')
   parser.add_argument('--plot-type', type = str, help = 'Type of plot to generate, for now support only treemap and sunburst', default = 'treemap')
+  parser.add_argument('--show', action='store_true', help = 'Show the plot')
   return parser.parse_args()
 
-def treemap_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap):
+def treemap_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap, show = False, out_dir = "."):
   # adjust colormap
   df_tree = utils.assign_colors(df_tree, top_module, colormap)
   
@@ -58,13 +62,16 @@ def treemap_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap):
     selector=dict(type='treemap')
   )
 
-  fig.show()
+  if show:
+    fig.show()
   # save figure
-  fig.write_image(str(top_module) + "_treemap" +".png", engine="kaleido")
-  fig.write_image(str(top_module) + "_treemap" +".svg", engine="kaleido")
+  base_path = os.path.join(out_dir, str(top_module) + "_treemap")
+  fig.write_image(str(base_path) + ".png", engine="kaleido")
+  fig.write_image(str(base_path) + ".svg", engine="kaleido")
+  fig.write_html(str(base_path) + ".html")
 
 
-def sunburst_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap):
+def sunburst_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap, show = False, out_dir = "."):
   # adjust colormap
   df_tree = utils.assign_colors(df_tree, top_module, colormap)
   
@@ -89,37 +96,55 @@ def sunburst_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap):
     width=500,
     height=500,
   )
-  fig.show()
+  if show:
+    fig.show()
   # save figure
-  fig.write_image(str(top_module) + "_sunburst.png", engine="kaleido")
-  fig.write_image(str(top_module) + "_sunburst.svg", engine="kaleido")
-
+  base_path = os.path.join(out_dir, str(top_module) + "_sunburst")
+  fig.write_image(base_path + ".png", engine="kaleido")
+  fig.write_image(base_path + ".svg", engine="kaleido")
+  fig.write_html(base_path + ".html")
 
 def main():
   args = get_args()
   filename = args.filename
-  top_module = args.top_module
 
   # define colormap as a list of hex colors
   colormap = ['#d58936', '#39393a','#6d1a36','#39393a','#007480','#39393a','#39393a', '#39393a','#39393a','#6d1a36','#007480', '#d58936' ]
 
-  if (args.load_from_csv):
-    df_tree = pd.read_csv(args.csv_file)
+  if (args.load_from_csv != None):
+    df_tree = pd.read_csv(args.load_from_csv)
   else:
     df_tree = utils.get_df_from_report(filename)
   
   # Remove rows with value 0
   #df_tree = df_tree[df_tree['value'] != 0]
+
+  # Infer top module
+  if (args.top_module == None):
+    top_module = df_tree['id'].iloc[0]
+    print("Warning: top_module not specified, inferred as the first entry: ", top_module)
+  else:
+    top_module = args.top_module
+
+  # Create the output directory
+  if not os.path.exists(args.out_dir):
+    os.makedirs(args.out_dir)
   
   # Find duplicate and rename them and all their children 'parent' field
   # Note: renaming is required not to break the plotly plot
-  if (args.rename):
-    df_tree = utils.rename_duplicates(df_tree)
+  if not args.skip_rename:
+    df_tree = utils.rename_duplicates(df_tree, top_module)
     # save not to call it every time
-    df_tree.to_csv(args.csv_file, index=False)
+  
+  csv_path = os.path.join(args.out_dir, str(top_module) + ".csv")
+  df_tree.to_csv(csv_path, index=False)
   
   # Ensure the values are numeric
   df_tree['value'] = pd.to_numeric(df_tree['value'], errors='coerce')
+
+  # Merge entries lower than the threshold into a single entry called 'others'
+  if (args.threshold != None and args.threshold > 0 and args.threshold < 1):
+    df_tree = utils.plot_threshold(df_tree, args.threshold)
 
   # Remove wrappers
   df_tree = utils.remove_wrappers(df_tree)
@@ -128,9 +153,9 @@ def main():
 
   # Plot the treemap
   if (args.plot_type == 'treemap'):
-    treemap_plot(df_tree, top_module, args.max_levels_hier, args.plot_mode, colormap)
+    treemap_plot(df_tree, top_module, args.max_levels_hier, args.plot_mode, colormap, args.show, args.out_dir)
   elif (args.plot_type == 'sunburst'):
-    sunburst_plot(df_tree, top_module, args.max_levels_hier, args.plot_mode, colormap)
+    sunburst_plot(df_tree, top_module, args.max_levels_hier, args.plot_mode, colormap, args.show, args.out_dir)
   
 if __name__ == '__main__':
   main()

@@ -97,6 +97,7 @@ def plot_threshold(df, threshold):
   
   # Set the root node color
   for parent_id in df['parent'].unique():
+      other_value = 0.0
       if pd.isna(parent_id) or parent_id == '':
           continue
       children = df[df['parent'] == parent_id]
@@ -106,8 +107,13 @@ def plot_threshold(df, threshold):
         parent_attr = df.loc[df['id'] == parent_id, 'value'].values[0]
         # Remove child if child_attr < threshold * parent_attr
         if child_attr < threshold * parent_attr:
+          other_value += child_attr
           df = df[df['id'] != child_id]
           df = recursive_remove(df, child_id)
+
+      # Add the 'others' component
+      if other_value > 0:
+          df = df._append({'id': parent_id + '_others', 'parent': parent_id, 'label': 'others', 'value': other_value, 'color': 'blue'}, ignore_index=True)
 
           
   return df
@@ -352,7 +358,7 @@ def get_area_from_component_name(component_name, filename):
   
   area = []
   for name in component_name:
-    str_match = '\w*' + name + '\s+(\d+\.+\d+)'
+    str_match = r'\w*' + name + r'\s+(\d+\.+\d+)'
     for line in lines:
       
       match = re.search(str_match, line)
@@ -365,12 +371,16 @@ def get_area_from_component_name(component_name, filename):
   return area
   
 
-def rename_duplicates(df):
+def rename_duplicates(df, top_module):
     # Step 1: Find duplicates in the 'id' column
     duplicates = df[df.duplicated(subset=['id'], keep=False)]
 
     # Step 2: Iterate over duplicates and rename them uniquely
     for idx, (id_val, parent, label, value, color) in enumerate(duplicates.values):
+        # Exit if the duplicate is the top module
+        if id_val == top_module:
+          raise NameError(f"Cannot choose among multiple instances of the top module '{id_val}'.")
+        
         # Find all rows with this duplicate ID
         matching_rows = df[df['id'] == id_val].index
         # Find all children of a given id, they can go from the current idx to the next matching_rows element
@@ -410,7 +420,7 @@ def get_df_from_report(filename:str):
 
   df = pd.DataFrame(columns=['id', 'parent', 'label', 'value', 'color'])
 
-  component_str = '([[a-zA-Z\_]+[\/[a-zA-Z0-9\_]*]{0,})\s+(\d+\.+\d+)'
+  component_str = r'([[a-zA-Z\_]+[\/[a-zA-Z0-9\_]*]{0,})\s+(\d+\.+\d+)'
   first_match_is_top = False
   for line in lines:
     match = re.search(component_str, line)
