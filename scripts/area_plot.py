@@ -144,7 +144,7 @@ def main():
 
   # Merge entries lower than the threshold into a single entry called 'others'
   if (args.threshold != None and args.threshold > 0 and args.threshold < 1):
-    df_tree = utils.plot_threshold(df_tree, args.threshold)
+    df_tree = utils.plot_threshold(df_tree, top_module, args.threshold)
 
   # Remove wrappers
   df_tree = utils.remove_wrappers(df_tree)

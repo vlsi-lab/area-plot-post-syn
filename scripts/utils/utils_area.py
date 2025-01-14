@@ -87,7 +87,23 @@ def add_module(df, module_name, parent_name, attr):
       parent = parent_row['parent'].values[0] if not parent_row.empty else ''
   return df
 
-def plot_threshold(df, threshold):
+
+def recursive_add(df, df_sub, parent_id):
+  '''
+  Add all children of a parent to df_sub dataframe
+  @param df: pd.DataFrame. DataFrame with the area of the components instance
+  @param parent_id: str. Parent id whose children to add
+  @param df_sub: pd.DataFrame. DataFrame to add the children to
+  '''
+  df = df.copy()
+  children = df[df['parent'] == parent_id]
+  for _, child in children.iterrows():
+    # add child to the dataframe
+    df_sub = df_sub._append(child)
+    df_sub = recursive_add(df, df_sub, child['id'])
+  return df_sub
+
+def plot_threshold(df, top_module, threshold):
   '''
   Remove all children with area < threshold * parent area
   @param df: pd.DataFrame. DataFrame with the area of the components instance
@@ -95,28 +111,33 @@ def plot_threshold(df, threshold):
   '''
   df = df.copy()
   
-  # Set the root node color
-  for parent_id in df['parent'].unique():
+  # Look at the hierarchy starting from the top_module
+  df_sub = pd.DataFrame(columns=['id', 'parent', 'label', 'value', 'color'])
+  df_sub = df_sub._append(df.loc[df['id'] == top_module], ignore_index=True)
+  df_sub.loc[df_sub['id'] == top_module, 'parent'] = ''
+  df_sub = recursive_add(df, df_sub, top_module)
+  # Iterate over all parents
+  for parent_id in df_sub['parent'].unique():
       other_value = 0.0
       if pd.isna(parent_id) or parent_id == '':
           continue
-      children = df[df['parent'] == parent_id]
+      children = df_sub[df_sub['parent'] == parent_id]
       for child_id in children['id']:
         # find child value
-        child_attr = df.loc[df['id'] == child_id, 'value'].values[0]
-        parent_attr = df.loc[df['id'] == parent_id, 'value'].values[0]
+        child_attr = df_sub.loc[df_sub['id'] == child_id, 'value'].values[0]
+        parent_attr = df_sub.loc[df_sub['id'] == parent_id, 'value'].values[0]
         # Remove child if child_attr < threshold * parent_attr
         if child_attr < threshold * parent_attr:
           other_value += child_attr
-          df = df[df['id'] != child_id]
-          df = recursive_remove(df, child_id)
+          df_sub = df_sub[df_sub['id'] != child_id]
+          df_sub = recursive_remove(df_sub, child_id)
 
       # Add the 'others' component
       if other_value > 0:
-          df = df._append({'id': parent_id + '_others', 'parent': parent_id, 'label': 'others', 'value': other_value, 'color': 'blue'}, ignore_index=True)
+          df_sub = df_sub._append({'id': parent_id + '_others', 'parent': parent_id, 'label': 'others', 'value': other_value, 'color': 'blue'}, ignore_index=True)
 
           
-  return df
+  return df_sub
 
 
 def lighten_color(hex_color, amount=0.5):
