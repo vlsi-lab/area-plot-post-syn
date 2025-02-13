@@ -1,4 +1,6 @@
 __pycache__
+*.egg-info
+/dist
 
 # Output files
 /*.svg
@@ -8,3 +10,6 @@ __pycache__
 
 # Private files
 /private
+
+# Python virtual environment
+/venv

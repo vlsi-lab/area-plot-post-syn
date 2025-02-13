@@ -9,7 +9,7 @@
 import plotly.graph_objects as go
 import argparse
 import pandas as pd
-import utils.utils_area as utils
+import area_plot.utils_area as utils
 import os
 
 
@@ -18,13 +18,13 @@ def get_args():
   parser = argparse.ArgumentParser()
   # Add mutually arguments
   group = parser.add_mutually_exclusive_group(required=True)
-  group.add_argument('--filename', type = str, help = 'Name of the report file to parse', default = './area.rpt')
+  group.add_argument('--filename', '-f', type = str, help = 'Name of the report file to parse', default = './area.rpt')
   group.add_argument('--load-from-csv', type = str, help = 'Load the hierarchy from the specified csv file')
   # Add arguments
-  parser.add_argument('--out-dir', type = str, help = 'Output directory where to store the generated plots.', default = '.')
+  parser.add_argument('--out-dir', '-o', type = str, help = 'Output directory where to store the generated plots.', default = '.')
   parser.add_argument('--skip_rename', action='store_true', help = 'Skip looking for duplicates in the hierarchy. This may break the plot if duplicates are present, but it is faster.')
-  parser.add_argument('--top-module', type = str, help = 'Name of the top module to plot')
-  parser.add_argument('--max-levels-hier', type = int, help = 'Maximum number of levels to consider in the hierarchy', default = 4)
+  parser.add_argument('--top-module', '-t', type = str, help = 'Name of the top module to plot')
+  parser.add_argument('--max-levels-hier', '-d', type = int, help = 'Maximum number of levels to consider in the hierarchy', default = 4)
   parser.add_argument('--threshold', type = float, help = 'Minimum area percentage with respect to the parent to plot a component', default = 0)
   parser.add_argument('--plot-mode', choices=['total','remainder'], default = 'total')
   parser.add_argument('--plot-type', type = str, help = 'Type of plot to generate, for now support only treemap and sunburst', default = 'treemap')
