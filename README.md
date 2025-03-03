@@ -30,7 +30,7 @@ make conda # create a new conda environment with the dependencies
 ### Generate the area chart
 
 To plot the layout of a design, the only requirement is a post-synthesis area report.
-Launch the area generation thorugh the command:
+Launch the area generation from this level of the repo through the command:
 ```bash
 python3 area_plot.py --filename report_file.rpt
 ```

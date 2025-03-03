@@ -9,7 +9,7 @@
 import plotly.graph_objects as go
 import argparse
 import pandas as pd
-import area_plot.utils_area as utils
+import utils_area as utils
 import os
 
 
