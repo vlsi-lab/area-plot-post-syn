@@ -29,6 +29,7 @@ def get_args():
   parser.add_argument('--plot-mode', choices=['total','remainder'], default = 'total')
   parser.add_argument('--plot-type', type = str, help = 'Type of plot to generate, for now support only treemap and sunburst', default = 'treemap')
   parser.add_argument('--show', action='store_true', help = 'Show the plot')
+  parser.add_argument('--colormap', type = str, nargs="+",  help = 'Colormap to use for the plot', default = ['#d58936', '#39393a','#90C290','#6d1a36','#39393a','#007480'])
   return parser.parse_args()
 
 def treemap_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap, show = False, out_dir = "."):
@@ -109,8 +110,7 @@ def main():
   filename = args.filename
 
   # define colormap as a list of hex colors
-  colormap = ['#d58936', '#39393a','#6d1a36','#39393a','#007480','#39393a','#39393a', '#39393a','#39393a','#6d1a36','#007480', '#d58936' ]
-
+  colormap = args.colormap
   if (args.load_from_csv != None):
     df_tree = pd.read_csv(args.load_from_csv)
   else:

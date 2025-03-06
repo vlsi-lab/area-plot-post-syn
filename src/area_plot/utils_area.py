@@ -190,11 +190,13 @@ def make_color_transparent(hex_color, amount=0.5):
     return f'#{r:02x}{g:02x}{b:02x}{a:02x}'
 
 
-
 def assign_colors(df, top_module, root_colors):  
     '''
     Starting from a df with columns: id, parent, label, value, color 
     assign a color to each component based on the parent-child relationship
+    Assign a color of the root colors to all the children of the top_module, then each
+    subchild will have a color that is a lighter version of the parent color, based
+    on the hierarchical level
     @param df: pd.DataFrame. DataFrame with the area of the components instance
     @param root_colors: list of str. List of colors to assign to the first generation children
     @return: pd.DataFrame. DataFrame with the area of the components instance and the assigned colors
@@ -217,20 +219,17 @@ def assign_colors(df, top_module, root_colors):
           children = df[df['parent'] == parent_id]
           for child_id in children['id']:
             df.loc[df['id'] == child_id, 'color'] = root_colors[c_idx]
-            c_idx += 1
+            c_idx = (c_idx + 1) % len(root_colors)
         else:
           parent_color = df.loc[df['id'] == parent_id, 'color'].values[0]
-          parent_value = df.loc[df['id'] == parent_id, 'value'].values[0]
           # Find all children of the current parent
           children = df[df['parent'] == parent_id]
 
           # Assign color to each child based on its importance relative to the parent
           for child_id in children['id']:
-            child_value = df.loc[df['id'] == child_id, 'value'].values[0]
-            importance_ratio = child_value / (parent_value+eps)  # Determines how much lighter the color will be
             # TODO: improve, this serves when top_module != from top
             try:
-              child_color = make_color_transparent(parent_color, amount=importance_ratio * 0.5)  # Scale lightening by ratio
+              child_color = make_color_transparent(parent_color, amount=0.3)  # Scale lightening by ratio
             except ValueError:
               continue
             df.loc[df['id'] == child_id, 'color'] = child_color
@@ -440,25 +439,40 @@ def get_df_from_report(filename:str):
   file.close()
 
   df = pd.DataFrame(columns=['id', 'parent', 'label', 'value', 'color'])
-
+  
   component_str = r'([[a-zA-Z\_]+[\/[a-zA-Z0-9\_]*]{0,})\s+(\d+\.+\d+)'
   first_match_is_top = False
+  
+  rows = []  # Store rows before adding them to df
+  
   for line in lines:
-    match = re.search(component_str, line)
-    if match:
-      split_hier = match.group(1).split('/')
-      area = float(match.group(2))
-      label = prettify_name(split_hier[-1])
-      if first_match_is_top == False:
-        df = df._append({'id': split_hier[-1], 'parent': '', 'label': label, 'value': area, 'color': 'blue'}, ignore_index=True)
-        top_name = split_hier[-1]
-        first_match_is_top = True
-      elif len(split_hier) == 1:
-        df = df._append({'id': split_hier[-1], 'parent': top_name, 'label': label, 'value': area, 'color': 'blue'}, ignore_index=True)
-      else:
-        df = df._append({'id': split_hier[-1], 'parent': split_hier[-2] , 'label': label, 'value': area, 'color': 'blue'}, ignore_index=True)
-  # Remove last line that is the total
-  df = df[:-1]
+      match = re.search(component_str, line)
+      if match:
+          split_hier = match.group(1).split('/')
+          area = float(match.group(2))
+          label = prettify_name(split_hier[-1])
+  
+          if not first_match_is_top:
+              rows.append({'id': split_hier[-1], 'parent': '', 'label': label, 'value': area, 'color': 'blue'})
+              top_name = split_hier[-1]
+              first_match_is_top = True
+          elif len(split_hier) == 1:
+              print(f"Found top module {split_hier[-1]}")
+              rows.append({'id': split_hier[-1], 'parent': top_name, 'label': label, 'value': area, 'color': 'blue'})
+          else:
+              rows.append({'id': split_hier[-1], 'parent': split_hier[-2], 'label': label, 'value': area, 'color': 'blue'})
+  
+  # Convert list of rows to DataFrame and concatenate in one operation
+  # Check for empty rows to avoid error in concatenation
+  if rows:
+      df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
+  
+  # Remove last row (assumed to be the total)
+  # Careful!!!! this is true for the tested tools, may be a problem with others
+  # print last row
+  if not df.empty:
+      df = df[:-1]
+
   # save to temp cvs
   #df.to_csv('temp.csv', index=False, float_format='%.4f', columns=['id', 'parent', 'label', 'value', 'color'], header=True)
   return df  
