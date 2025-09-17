@@ -408,8 +408,10 @@ def rename_duplicates(df, top_module):
           try:
             next_row_idx = matching_rows[i+1]
           except IndexError:
-            next_row_idx = len(df)
-          for j in range(row_idx+1, next_row_idx):
+            # go to the end of the dataframe, if last duplicate
+            next_row_idx = len(df)-1
+          # go up to the nexxt index included for corner case of child with same name as parent (rare but possible)
+          for j in range(row_idx+1, next_row_idx+1):
             if df.loc[j, 'parent'] == id_val:
               #print(f"Found child {df.loc[j, 'id']} of {id_val}")
               # substitute the parent with the new name
@@ -440,7 +442,7 @@ def get_df_from_report(filename:str):
 
   df = pd.DataFrame(columns=['id', 'parent', 'label', 'value', 'color'])
   
-  component_str = r'([[a-zA-Z\_]+[\/[a-zA-Z0-9\_]*]{0,})\s+(\d+\.+\d+)'
+  component_str = r'([[a-zA-Z\_]+[\/[a-zA-Z0-9\_]*]{0,})\s+(\d+\.+\d+)[\s+\d+\.+\d+]*[a-zA-Z\_]+'
   first_match_is_top = False
   
   rows = []  # Store rows before adding them to df
@@ -456,8 +458,9 @@ def get_df_from_report(filename:str):
               rows.append({'id': split_hier[-1], 'parent': '', 'label': label, 'value': area, 'color': 'blue'})
               top_name = split_hier[-1]
               first_match_is_top = True
-          elif len(split_hier) == 1:
               print(f"Found top module {split_hier[-1]}")
+          elif len(split_hier) == 1:
+              print(f"Found module {split_hier[-1]}")
               rows.append({'id': split_hier[-1], 'parent': top_name, 'label': label, 'value': area, 'color': 'blue'})
           else:
               rows.append({'id': split_hier[-1], 'parent': split_hier[-2], 'label': label, 'value': area, 'color': 'blue'})
