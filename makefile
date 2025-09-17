@@ -22,7 +22,7 @@ build:
 ## @subsection Install package
 .PHONY: install
 install: build
-	python3 -m pip install dist/area_plot-0.1.0-py3-none-any.whl
+	python3 -m pip install dist/area_plot-0.1.1-py3-none-any.whl
 
 .PHONY: uninstall
 uninstall:
