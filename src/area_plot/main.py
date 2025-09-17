@@ -23,7 +23,7 @@ def get_args():
   # Add arguments
   parser.add_argument('--out-dir', '-o', type = str, help = 'Output directory where to store the generated plots.', default = '.')
   parser.add_argument('--skip_rename', action='store_true', help = 'Skip looking for duplicates in the hierarchy. This may break the plot if duplicates are present, but it is faster.')
-  parser.add_argument('--top-module', '-t', type = str, help = 'Name of the top module to plot')
+  parser.add_argument('--top-module', '-t', type = str, nargs='?', const='', help = 'Name of the top module to plot')
   parser.add_argument('--max-levels-hier', '-d', type = int, help = 'Maximum number of levels to consider in the hierarchy', default = 4)
   parser.add_argument('--threshold', type = float, help = 'Minimum area percentage with respect to the parent to plot a component', default = 0)
   parser.add_argument('--plot-mode', choices=['total','remainder'], default = 'total')
@@ -38,6 +38,7 @@ def treemap_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap, show
   
   fig = go.Figure()
   fig.add_trace(go.Treemap(
+      name='',
       ids = df_tree['id'],
       labels = df_tree['label'],
       values=df_tree['value'],
@@ -48,6 +49,7 @@ def treemap_plot(df_tree, top_module, max_levels_hier, plot_mode, colormap, show
       marker_colors = df_tree['color'],
       textinfo = 'label+percent parent',
       branchvalues = plot_mode,
+      hovertemplate='<b>%{label}</b><br>Area: %{value}<br>%{percentParent:.2%} of parent<br>%{percentRoot:.2%} of total',
       #sort=True
   ))
   fig.update_layout(
@@ -119,8 +121,8 @@ def main():
   # Remove rows with value 0
   #df_tree = df_tree[df_tree['value'] != 0]
 
-  # Infer top module
-  if (args.top_module == None):
+  # Infer top module if not provided
+  if (args.top_module == None or args.top_module == ""):
     top_module = df_tree['id'].iloc[0]
   else:
     top_module = args.top_module
