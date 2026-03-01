@@ -205,8 +205,6 @@ def assign_colors(df, top_module, root_colors):
     
     # Set the root node color
     df.loc[df['id'] == top_module, 'color'] = root_colors[0]
-    # print line where id == top_module
-    #print(df.loc[df['id'] == top_module])
     # Recursive color assignment based on parent-child relationships
     c_idx = 1
     eps = 1e-4
@@ -283,12 +281,8 @@ def add_component_to_dict(component_dict, parent_name, component_name, attr, thr
   '''
   if curr_level_hier > max_levels_hier:
     return False
-  # TODO: add supporto for other components occupying additional area
-  #print(component_dict)
   for k, v in component_dict.items():
-    #print(k)
     if k == parent_name:
-      #print('HERE', curr_level_hier)
       if curr_level_hier <= max_levels_hier:
         if attr > threshold * v['attr']:
           component_dict[k][component_name] = {'attr': attr}
@@ -333,7 +327,6 @@ def dict2df(component_dict, hier_levels, parent_inst=None, df_tree=None):
       if k == parent_inst:
         df_tree = df_tree._append({'id': k, 'parent': '', 'value': v['attr'], 'color': 'blue'}, ignore_index=True)
         if isinstance(v, dict):
-          #df_tree = df_tree._append({'id': k, 'parent': '', 'value': v['attr'], 'color': 'blue'}, ignore_index=True)
           df_tree = dict2df(v, hier_levels-1, k, df_tree)
       else:
         if isinstance(v, dict):
@@ -413,7 +406,6 @@ def rename_duplicates(df, top_module):
           # go up to the nexxt index included for corner case of child with same name as parent (rare but possible)
           for j in range(row_idx+1, next_row_idx+1):
             if df.loc[j, 'parent'] == id_val:
-              #print(f"Found child {df.loc[j, 'id']} of {id_val}")
               # substitute the parent with the new name
               df.loc[j, 'parent'] = f"{id_val}_{i+1}"
         # Rename all duplicate occurrences uniquely (e.g., append '_1', '_2', etc.)
@@ -423,59 +415,122 @@ def rename_duplicates(df, top_module):
         
     return df
 
-def get_df_from_report(filename:str):
-  '''
-  Parse the report file to get the area of the component instance.
 
-  @param filename: str. Name of the report to parse
-  @return: pd.DataFrame. DataFrame with the area of the components instance
-  The DataFrame has the following columns:
-  - id: str. Name of the component instance
-  - parent: str. Name of the parent component instance
-  - label: str. Pretty name of the component instance (TO BE DEFINED IN A PRETTY WAY)
-  - value: float. Area of the component instance
-  - color: str. Color of the component instance (TO BE DEFINED IN A PRETTY WAY)
-  '''
-  file = open(filename, 'r')
-  lines = file.readlines()
-  file.close()
+def _extract_leaf_id(segment):
+    '''
+    Extract the canonical module id from a path segment that may contain
+    dot-separated sub-segments and generate/array syntax.
 
-  df = pd.DataFrame(columns=['id', 'parent', 'label', 'value', 'color'])
-  
-  component_str = r'([[a-zA-Z\_]+[\/[a-zA-Z0-9\_]*]{0,})\s+(\d+\.+\d+)[\s+\d+\.+\d+]*[a-zA-Z\_]+'
-  first_match_is_top = False
-  
-  rows = []  # Store rows before adding them to df
-  
-  for line in lines:
-      match = re.search(component_str, line)
-      if match:
-          split_hier = match.group(1).split('/')
-          area = float(match.group(2))
-          label = prettify_name(split_hier[-1])
-  
-          if not first_match_is_top:
-              rows.append({'id': split_hier[-1], 'parent': '', 'label': label, 'value': area, 'color': 'blue'})
-              top_name = split_hier[-1]
-              first_match_is_top = True
-              print(f"Found top module {split_hier[-1]}")
-          elif len(split_hier) == 1:
-              print(f"Found module {split_hier[-1]}")
-              rows.append({'id': split_hier[-1], 'parent': top_name, 'label': label, 'value': area, 'color': 'blue'})
-          else:
-              rows.append({'id': split_hier[-1], 'parent': split_hier[-2], 'label': label, 'value': area, 'color': 'blue'})
-  
-  # Convert list of rows to DataFrame and concatenate in one operation
-  # Check for empty rows to avoid error in concatenation
-  if rows:
-      df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
-  
-  # Remove last row (assumed to be the total)
-  # Careful!!!! this is true for the tested tools, may be a problem with others
-  # print last row
-  if not df.empty:
-      df = df[:-1]
+    Examples
+    --------
+    "cs_registers_i"                          -> "cs_registers_i"
+    "gen_cntrs[0].gen_imp.mcounters_variable_i" -> "mcounters_variable_i"
+    "c.d.e.f"                                  -> "f"
 
-  # save to temp cvs
-  #df.to_csv('temp.csv', index=False, float_format='%.4f', columns=['id', 'parent', 'label', 'value', 'color'], header=True)
-  return df  
+    The rule is: split on '.' and take the LAST non-empty token, then
+    strip any trailing array index (e.g. "[0]").
+    '''
+    # Split on dots and take the last token
+    tokens = [t for t in segment.split('.') if t]
+    leaf = tokens[-1] if tokens else segment
+    # Strip trailing array index, e.g. "foo[0]" -> "foo"
+    leaf = re.sub(r'\[\d+\]$', '', leaf)
+    return leaf
+
+
+def get_df_from_report(filename: str):
+    '''
+    Parse the report file to get the area of the component instance.
+
+    @param filename: str. Name of the report to parse
+    @return: pd.DataFrame. DataFrame with the area of the components instance
+    The DataFrame has the following columns:
+    - id: str. Name of the component instance
+    - parent: str. Name of the parent component instance
+    - label: str. Pretty name of the component instance
+    - value: float. Area of the component instance
+    - color: str. Color of the component instance
+    '''
+    file = open(filename, 'r')
+    lines = file.readlines()
+    file.close()
+
+    df = pd.DataFrame(columns=['id', 'parent', 'label', 'value', 'color'])
+
+    # Path segments may now contain:
+    #   - plain names:            foo_bar
+    #   - array indices:          gen_cntrs[0]
+    #   - dot-separated parts:    gen_cntrs[0].gen_imp.mcounters_variable_i
+    # A full path looks like:    top/parent/gen_cntrs[0].gen_imp.leaf_i
+    #
+    # Regex breakdown:
+    #   [a-zA-Z_][a-zA-Z0-9_]*          first slash-separated segment (no leading digit)
+    #   (?:\[[^\]]*\])?                  optional array index on that segment
+    #   (?:                              zero or more additional slash-separated segments
+    #     /
+    #     [a-zA-Z0-9_][a-zA-Z0-9_]*     segment name (allow leading digit after '/')
+    #     (?:\[[^\]]*\])?                optional array index
+    #     (?:\.[a-zA-Z0-9_]+            dot-sub-segments (allow dots inside a slash segment)
+    #       (?:\[[^\]]*\])?
+    #     )*
+    #   )*
+    component_str = (
+        r'('
+        r'[a-zA-Z_][a-zA-Z0-9_]*(?:\[[^\]]*\])?'          # first segment
+        r'(?:'
+            r'/[a-zA-Z0-9_][a-zA-Z0-9_]*(?:\[[^\]]*\])?'  # additional /segment
+            r'(?:\.[a-zA-Z0-9_]+(?:\[[^\]]*\])?)*'         # optional .dot.parts
+        r')*'
+        r')'
+        r'\s+(\d+\.\d+)'                                    # whitespace + area value
+    )
+
+    first_match_is_top = False
+    top_name = None
+    rows = []
+
+    for line in lines:
+        match = re.search(component_str, line)
+        if not match:
+            continue
+
+        full_path = match.group(1)
+        area = float(match.group(2))
+
+        # Split the path on '/' to get slash-separated segments
+        slash_segments = full_path.split('/')
+
+        # The leaf id comes from the last slash-segment (handles dots & brackets)
+        leaf_id = _extract_leaf_id(slash_segments[-1])
+
+        # The parent id comes from the second-to-last slash-segment (if it exists)
+        if len(slash_segments) >= 2:
+            parent_id = _extract_leaf_id(slash_segments[-2])
+        else:
+            parent_id = None  # will be resolved below
+
+        label = prettify_name(leaf_id)
+
+        if not first_match_is_top:
+            # Very first matched line is always the top module
+            rows.append({'id': leaf_id, 'parent': '', 'label': label, 'value': area, 'color': 'blue'})
+            top_name = leaf_id
+            first_match_is_top = True
+            print(f"Found top module {leaf_id}")
+        elif len(slash_segments) == 1:
+            # Single-segment path: direct child of top
+            print(f"Found module {leaf_id}")
+            rows.append({'id': leaf_id, 'parent': top_name, 'label': label, 'value': area, 'color': 'blue'})
+        else:
+            # Multi-segment path: parent is the extracted id of the previous slash-segment
+            rows.append({'id': leaf_id, 'parent': parent_id, 'label': label, 'value': area, 'color': 'blue'})
+
+    # Convert list of rows to DataFrame in one operation
+    if rows:
+        df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
+
+    # Remove last row (assumed to be the total line added by the tool)
+    if not df.empty:
+        df = df[:-1]
+
+    return df
